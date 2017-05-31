@@ -107,5 +107,14 @@ namespace Switcheroo
         }
 
         #endregion
+
+        /*缩略图*/
+        public Thumbnail thumbnail;
+
+        public void initThumbNail(IntPtr hwndDestination, IntPtr hwndSource)
+        {
+            thumbnail = new Thumbnail(hwndDestination, hwndSource);
+            thumbnail.SetVisible(false);
+        }
     }
 }

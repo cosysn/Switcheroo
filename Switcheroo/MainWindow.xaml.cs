@@ -18,6 +18,11 @@
  * along with Switcheroo.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using ManagedWinapi;
+using ManagedWinapi.Windows;
+using Switcheroo.Core;
+using Switcheroo.Core.Matchers;
+using Switcheroo.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -31,13 +36,8 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using ManagedWinapi;
-using ManagedWinapi.Windows;
-using Switcheroo.Core;
-using Switcheroo.Core.Matchers;
-using Switcheroo.Properties;
+using System.Windows.Media;
 using Application = System.Windows.Application;
 using MenuItem = System.Windows.Forms.MenuItem;
 using MessageBox = System.Windows.MessageBox;
@@ -247,6 +247,8 @@ namespace Switcheroo
         /// </summary>
         private void LoadData(InitialFocus focus)
         {
+            IntPtr hWnd = new WindowInteropHelper(this).Handle;
+
             _unfilteredWindowList = new WindowFinder().GetWindows().Select(window => new AppWindowViewModel(window)).ToList();
 
             var firstWindow = _unfilteredWindowList.FirstOrDefault();
@@ -259,6 +261,17 @@ namespace Switcheroo
                 _unfilteredWindowList.RemoveAt(0);
                 _unfilteredWindowList.Add(firstWindow);
                 foregroundWindowMovedToBottom = true;
+
+                
+
+#if false
+                //Set the region where the live preview will be drawn
+               // int left = (int)relativePoint.Y;
+               // int top = (int)relativePoint.X;
+                firstWindow.thumbnail.SetDestinationRectangle(new System.Drawing.Rectangle(150, 300, 400, 400));
+                firstWindow.thumbnail.SetVisible(true);
+                firstWindow.thumbnail.SetSourceClientAreaOnly(true);
+#endif
             }
 
             _filteredWindowList = new ObservableCollection<AppWindowViewModel>(_unfilteredWindowList);
@@ -269,6 +282,7 @@ namespace Switcheroo
                 window.FormattedTitle = new XamlHighlighter().Highlight(new[] {new StringPart(window.AppWindow.Title)});
                 window.FormattedProcessTitle =
                     new XamlHighlighter().Highlight(new[] {new StringPart(window.AppWindow.ProcessTitle)});
+                window.initThumbNail(hWnd, window.AppWindow.HWnd); /*初始化缩略图*/
             }
 
             lb.DataContext = null;
@@ -280,6 +294,26 @@ namespace Switcheroo
             tb.Focus();
             CenterWindow();
             ScrollSelectedItemIntoView();
+
+            if (firstWindow != null && AreWindowsRelated(firstWindow.AppWindow, _foregroundWindow))
+            {
+#if true
+                GeneralTransform generalTransform = thumbnail.TransformToAncestor(this);
+                Point point = generalTransform.Transform(new Point(0, 0));
+                Point relativePoint = thumbnail.TranslatePoint(new Point(0, 0), this);
+                Vector vector = VisualTreeHelper.GetOffset(thumbnail);
+                Point currentPoint = new Point(vector.X, vector.Y);
+                //Set the region where the live preview will be drawn
+                int left = (int)relativePoint.X;
+                int top = (int)relativePoint.Y;
+                int right = left + (int)thumbnail.ActualWidth;
+                int bottom = top + (int)thumbnail.ActualHeight;
+
+                firstWindow.thumbnail.SetDestinationRectangle(new System.Drawing.Rectangle(left, top, right, bottom));
+                firstWindow.thumbnail.SetVisible(true);
+                firstWindow.thumbnail.SetSourceClientAreaOnly(true);
+#endif
+            }
         }
 
         private static bool AreWindowsRelated(SystemWindow window1, SystemWindow window2)
@@ -346,11 +380,11 @@ namespace Switcheroo
             Hide();           
         }
 
-        #endregion
+#endregion
 
         /// =================================
 
-        #region Right-click menu functions
+#region Right-click menu functions
 
         /// =================================
         /// <summary>
@@ -406,10 +440,16 @@ namespace Switcheroo
 
         #endregion
 
-        /// =================================
+/// =================================
 
-        #region Event Handlers
-
+#region Event Handlers
+#if true
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            GlassHelper.ExtendGlassFrame(this, new Thickness(-1));
+        }
+#endif
         /// =================================
         private void OnClose(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -666,14 +706,8 @@ namespace Switcheroo
             window.Style = window.Style & ~WindowStyleFlags.SYSMENU;
         }
 
-        private void ShowHelpTextBlock_OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            var duration = new Duration(TimeSpan.FromSeconds(0.150));
-            var newHeight = HelpPanel.Height > 0 ? 0 : +17;
-            HelpPanel.BeginAnimation(HeightProperty, new DoubleAnimation(HelpPanel.Height, newHeight, duration));
-        }
 
-        #endregion
+#endregion
 
         private enum InitialFocus
         {
