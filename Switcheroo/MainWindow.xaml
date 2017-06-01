@@ -5,7 +5,7 @@
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         Closing="OnClose" ResizeMode="NoResize" ShowInTaskbar="False" WindowStyle="None" AllowsTransparency="True"
         SizeToContent="WidthAndHeight"
-        Title="" MinWidth="1200" Deactivated="MainWindow_OnLostFocus" Loaded="MainWindow_OnLoaded"
+        Title="" MinWidth="542" Deactivated="MainWindow_OnLostFocus" Loaded="MainWindow_OnLoaded"
         Height="{Binding SystemParameters.PrimaryScreenHeight}"
         BorderBrush="Transparent" BorderThickness="1"
         Background="Transparent">
@@ -161,10 +161,8 @@
                                          Color="{x:Static SystemColors.HighlightColor}" Opacity=".4" />
                         </ListBox.Resources>
                     </ListBox>
-                    <Border  Grid.Row="0" Grid.Column="1" Margin="5" BorderThickness="2" BorderBrush="White" Name="thumbnail" Panel.ZIndex="-1000" Background="Red">
-                        <!--<wfi:WindowsFormsHost Width="300" HorizontalAlignment="Right">
-                            <wf:PictureBox x:Name="thumbnail"/>
-                        </wfi:WindowsFormsHost>-->
+                    <Border Grid.Row="0" Grid.Column="1" BorderThickness="2" BorderBrush="White" Panel.ZIndex="-1000" Background="Red" Name="tb_border">
+                        <Image Name="thumbnail" HorizontalAlignment="Stretch"></Image>
                     </Border>
                 </Grid>
             </DockPanel>

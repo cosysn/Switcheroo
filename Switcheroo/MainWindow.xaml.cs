@@ -27,6 +27,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Drawing;  // Bitmap, Graphics
 using System.Linq;
 using System.Net;
 using System.Reflection;
@@ -36,11 +37,13 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Windows.Threading;
 using System.Windows.Media;
+using System.Windows.Threading;
+using System.Windows.Media.Imaging;
 using Application = System.Windows.Application;
 using MenuItem = System.Windows.Forms.MenuItem;
 using MessageBox = System.Windows.MessageBox;
+using Microsoft.Win32;
 
 namespace Switcheroo
 {
@@ -290,6 +293,15 @@ namespace Switcheroo
 
             FocusItemInList(focus, foregroundWindowMovedToBottom);
 
+            BitmapImage bi = new BitmapImage();
+            // BitmapImage.UriSource must be in a BeginInit/EndInit block.  
+            bi.BeginInit();
+            bi.UriSource = new Uri(GetPathOfWallpaper(), UriKind.RelativeOrAbsolute);
+            bi.EndInit();
+            thumbnail.Source = bi;
+            thumbnail.Width = SystemParameters.PrimaryScreenWidth / 2+40;
+            thumbnail.Height = SystemParameters.PrimaryScreenHeight / 2;
+
             tb.Clear();
             tb.Focus();
             CenterWindow();
@@ -299,17 +311,19 @@ namespace Switcheroo
             {
 #if true
                 GeneralTransform generalTransform = thumbnail.TransformToAncestor(this);
-                Point point = generalTransform.Transform(new Point(0, 0));
-                Point relativePoint = thumbnail.TranslatePoint(new Point(0, 0), this);
+                System.Windows.Point point = generalTransform.Transform(new System.Windows.Point(0, 0));
+                System.Windows.Point relativePoint = thumbnail.TranslatePoint(new System.Windows.Point(0, 0), this);
                 Vector vector = VisualTreeHelper.GetOffset(thumbnail);
-                Point currentPoint = new Point(vector.X, vector.Y);
+                System.Windows.Point currentPoint = new System.Windows.Point(vector.X, vector.Y);
                 //Set the region where the live preview will be drawn
                 int left = (int)relativePoint.X;
                 int top = (int)relativePoint.Y;
                 int right = left + (int)thumbnail.ActualWidth;
                 int bottom = top + (int)thumbnail.ActualHeight;
 
-                firstWindow.thumbnail.SetDestinationRectangle(new System.Drawing.Rectangle(left, top, right, bottom));
+                System.Drawing.Size size = firstWindow.thumbnail.GetSourceSize();
+
+                firstWindow.thumbnail.SetDestinationRectangle(new System.Drawing.Rectangle(left+20, top+20, right-20, bottom-20));
                 firstWindow.thumbnail.SetVisible(true);
                 firstWindow.thumbnail.SetSourceClientAreaOnly(true);
 #endif
@@ -380,11 +394,55 @@ namespace Switcheroo
             Hide();           
         }
 
-#endregion
+        static BitmapSource CopyScreen()
+        {
+            using (var screenBmp = new Bitmap((int)SystemParameters.PrimaryScreenWidth, (int)SystemParameters.PrimaryScreenHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            {
+                using (var bmpGraphics = Graphics.FromImage(screenBmp))
+                {
+                    bmpGraphics.CopyFromScreen(0, 0, 0, 0, screenBmp.Size);
+                    return Imaging.CreateBitmapSourceFromHBitmap(
+                        screenBmp.GetHbitmap(),
+                        IntPtr.Zero,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+                }
+            }
+        }
+
+        static BitmapSource CopyScreen(int left, int top, int width, int height)
+        {
+            using (var screenBmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            {
+                using (var bmpGraphics = Graphics.FromImage(screenBmp))
+                {
+                    bmpGraphics.CopyFromScreen(left, top, 0, 0, screenBmp.Size);
+                    return Imaging.CreateBitmapSourceFromHBitmap(
+                        screenBmp.GetHbitmap(),
+                        IntPtr.Zero,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+                }
+            }
+        }
+
+        private string GetPathOfWallpaper()
+        {
+            string pathWallpaper = "";
+            RegistryKey regKey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", false);
+            if (regKey != null)
+            {
+                pathWallpaper = regKey.GetValue("WallPaper").ToString();
+                regKey.Close();
+            }
+            return pathWallpaper;
+        }
+
+        #endregion
 
         /// =================================
 
-#region Right-click menu functions
+        #region Right-click menu functions
 
         /// =================================
         /// <summary>
